@@ -149,16 +149,6 @@ class NonogramSolver:
         for j in d:
             self.solutions.append(d[j])
 
-    @staticmethod
-    def adding_1(solution, att):
-        transformed_solution = []
-        for sublist in solution:
-            transformed_sublist = []
-            for elem in sublist:
-                transformed_sublist.append(elem + att)
-            transformed_solution.append(transformed_sublist)
-        return transformed_solution
-
     def solve(self):
         previous = 0
         max_num = self.rows*self.columns
@@ -202,9 +192,18 @@ class NonogramSolver:
                 for h in range(column*self.rows+1, column*self.rows+self.rows+1):
                     self.solutions.append([-(((h-1) % self.rows)*self.columns+(h-1)//self.rows+1)])
                 continue
+            sol_1, sol_2 = [], []
             solution_1, solution_2 = got[0], got[1]
-            sol_1 = self.adding_1(solution_1, att)
-            sol_2 = self.adding_1(solution_2, att)
+            for i in solution_1:
+                solution_1_1 = []
+                for j in i:
+                    solution_1_1.append(j+att)
+                sol_1.append(solution_1_1)
+            for i in solution_2:
+                solution_2_1 = []
+                for j in i:
+                    solution_2_1.append(-(j*(-1)+att))
+                sol_2.append(solution_2_1)
             solution_1, solution_2 = sol_1.copy(), sol_2.copy()
             max_num, min_num, color = got[2]+att, got[3]+att, got[4]
             colll = []
