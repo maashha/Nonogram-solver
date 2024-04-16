@@ -10,11 +10,15 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Thread
 
 existing_file = 'Efficiency_comparison.xlsx'
-tests = [70419, 70402, 70399, 70472, 70449, 70446, 70474, 70470, 70468, 70442, 70281, 70260, 70289, 70070, 69690]
+tests = ['small_tests/small_test_1', 'small_tests/small_test_2', 'small_tests/small_test_3',
+         'medium_tests/medium_test_1', 'medium_tests/medium_test_2', 'medium_tests/medium_test_3',
+         'large_tests/large_test_1', 'large_tests/large_test_2', 'large_tests/large_test_3',
+         'x-large_tests/x-large_test_1', 'x-large_tests/x-large_test_2', 'x-large_tests/x-large_test_3',
+         'xx-large_tests/xx-large_test_1', 'xx-large_tests/xx-large_test_2', 'xx-large_tests/xx-large_test_3']
 final_tests = []
 times_1, sizes_1, times_2 = [], [], []
 for test in tests:
-    final_tests.append('test'+str(test)+'.txt')
+    final_tests.append(test+'.txt')
     efficiency_1 = efficiency_counter(test)
     times_1.append(efficiency_1[0])
     sizes_1.append(efficiency_1[1])
