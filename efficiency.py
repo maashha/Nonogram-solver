@@ -1,13 +1,8 @@
 from Nonogram_solver import efficiency_counter
 from Nonogram_project import NonogramSolver
-from backtracking_naive import efficiency_naive
 from enumerative_backtracking_solver import efficiency_enumerative
 import pandas as pd
 import time
-from multiprocessing import Process
-import multiprocessing
-from concurrent.futures import ThreadPoolExecutor
-from threading import Thread
 
 existing_file = 'Efficiency_comparison.xlsx'
 tests = ['small_tests/small_test_1', 'small_tests/small_test_2', 'small_tests/small_test_3',
