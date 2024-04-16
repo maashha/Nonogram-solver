@@ -6,7 +6,8 @@ import os
 import time
 from matplotlib.patches import Rectangle
 from matplotlib import pyplot as plt
-
+from subprocess import run
+from subprocess import TimeoutExpired
 
 
 def compute_blocks(line_len: int, blocks: Tuple):
@@ -307,58 +308,55 @@ def draw(columns, rows, solved):
                 ax.add_patch(Rectangle((i % columns, rows-i//columns), 1, 1))
     plt.show()
 
-def efficiency_enumerative():
+def efficiency_enumerative(test):
     global partial_solution
     times = []
-    tests = [70419, 70402, 70399, 70472, 70449, 70446, 70474, 70470, 70468, 70442, 70281, 70260, 70289, 70070, 69690]
-    for test in tests:
-        solution_list: List[Type[np.ndarray]] = []
-        placements: Dict[str, Dict[int, List[Type[np.ndarray]]]] = {}
-        start_time = time.time()
-        ro = load_from_file('tests/test'+str(test)+'.txt')[0]
-        co = load_from_file('tests/test'+str(test)+'.txt')[1]
-        row_args = []
-        col_args = []
-        for i in ro:
-            row_args.append(tuple(i))
-        for i in co:
-            col_args.append(tuple(i))
-        row_vector_len = len(col_args)
-        col_vector_len = len(row_args)
-        placements['row'] = {}
-        for i, arg in enumerate(row_args):
-            blocks = compute_blocks(row_vector_len, arg)
-            placements['row'][i] = enumerate_blocks(blocks, arg, row_vector_len)
-        placements['column'] = {}
-        for i, arg in enumerate(col_args):
-            blocks = compute_blocks(col_vector_len, arg)
-            placements['column'][i] = enumerate_blocks(blocks, arg, col_vector_len)
+    solution_list: List[Type[np.ndarray]] = []
+    placements: Dict[str, Dict[int, List[Type[np.ndarray]]]] = {}
+    start_time = time.time()
+    ro = load_from_file('tests/test'+str(test)+'.txt')[0]
+    co = load_from_file('tests/test'+str(test)+'.txt')[1]
+    row_args = []
+    col_args = []
+    for i in ro:
+        row_args.append(tuple(i))
+    for i in co:
+        col_args.append(tuple(i))
+    row_vector_len = len(col_args)
+    col_vector_len = len(row_args)
+    placements['row'] = {}
+    for i, arg in enumerate(row_args):
+        blocks = compute_blocks(row_vector_len, arg)
+        placements['row'][i] = enumerate_blocks(blocks, arg, row_vector_len)
+    placements['column'] = {}
+    for i, arg in enumerate(col_args):
+        blocks = compute_blocks(col_vector_len, arg)
+        placements['column'][i] = enumerate_blocks(blocks, arg, col_vector_len)
 
-        # Infer values
-        partial_solution = -1 * np.ones((col_vector_len, row_vector_len), dtype=np.int8)
-        completed_rows = set()
-        completed_columns = set()
-        updated = True
-        while updated:
-            infer_values(partial_solution, placements)
-            completed_rows, completed_columns = update_completions(partial_solution)
-            updated, placements = update_placements(partial_solution, placements.copy(), completed_rows, completed_columns)
+    # Infer values
+    partial_solution = -1 * np.ones((col_vector_len, row_vector_len), dtype=np.int8)
+    completed_rows = set()
+    completed_columns = set()
+    updated = True
+    while updated:
+        infer_values(partial_solution, placements)
+        completed_rows, completed_columns = update_completions(partial_solution)
+        updated, placements = update_placements(partial_solution, placements.copy(), completed_rows, completed_columns)
 
-        assert (len(placements['row']) == 0 and len(placements['column']) == 0) or \
-               (len(placements['row']) != 0 and len(placements['column']) != 0)
+    assert (len(placements['row']) == 0 and len(placements['column']) == 0) or \
+           (len(placements['row']) != 0 and len(placements['column']) != 0)
 
-        if len(placements['row']) == 0:
-            solution_list.append(partial_solution)
-        else:
-            # Backtrack through the rest of the unsolved rows
-            print('Solving via backtracking')
-            backtrack(partial_solution, placements['row'], row_args, col_args, completed_rows, completed_columns)
-        solved = []
-        for i in solution_list[0]:
-            for j in list(i):
-                solved.append(j)
-        draw(row_vector_len, col_vector_len, solved)
-        end_time = time.time()
-        times.append(end_time-start_time)
-    return times
+    if len(placements['row']) == 0:
+        solution_list.append(partial_solution)
+    else:
+        # Backtrack through the rest of the unsolved rows
+        print('Solving via backtracking')
+        backtrack(partial_solution, placements['row'], row_args, col_args, completed_rows, completed_columns)
+    solved = []
+    for i in solution_list[0]:
+        for j in list(i):
+            solved.append(j)
+    draw(row_vector_len, col_vector_len, solved)
+    end_time = time.time()
+    return end_time-start_time
 

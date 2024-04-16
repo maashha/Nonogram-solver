@@ -5,20 +5,18 @@ from matplotlib.patches import Rectangle
 
 
 class NonogramSolver:
-    def __init__(self, rows, columns, row_blocks, column_blocks, solved_status, solution_clauses):
-        self.rows = rows
-        self.columns = columns
-        self.row_blocks = row_blocks
-        self.column_blocks = column_blocks
-        self.solved_status = solved_status
-        self.solution_clauses = solution_clauses
+    def __init__(self):
+        self.rows = 0
+        self.columns = 0
+        self.row_blocks = []
+        self.column_blocks = []
+        self.solved_status = []
+        self.solution_clauses = []
 
     def load_from_file(self, file_name):
         line_number = 0
-        self.rows = 0
-        self.columns = 0
-        self.row_blocks = []  # the array of all blocks of filled cells in ROWS
-        self.all_columns = []  # the array of all blocks of filled cells in COLUMNS
+        self.rows, self.columns = 0, 0
+        self.row_blocks, self.all_columns = [], []  # the array of all blocks of filled cells in ROWS/COLUMNS
         if os.path.isfile(file_name):
             with open(file_name, "r") as file:
                 for line in file:
@@ -32,12 +30,10 @@ class NonogramSolver:
                         self.all_columns.append(list(map(int, line.split())))
 
     @staticmethod
-    def existence(block_sizes, length, sizes, number):
+    def __existence(block_sizes, length, sizes, number):
         all_positions, non_empty_positions, uniqueness_clauses = [], [], []
-        max_position = 0
-        min_position = -1
-        left_boundary = 0
-        right_boundary = 0
+        max_position, min_position = 0, -1
+        left_boundary, right_boundary = 0, 0
         for group_size in range(len(block_sizes)):
             starting_positions = []
             if group_size == 0:
@@ -63,7 +59,7 @@ class NonogramSolver:
         return [all_positions, uniqueness_clauses, max_position, min_position, non_empty_positions]
 
     @staticmethod
-    def intersections(position_sets, block_lengths, amount):
+    def __intersections(position_sets, block_lengths, amount):
         intersecting_clauses = []
         for section_1 in range(len(position_sets)):
             for section_2 in range(section_1 + 1, len(position_sets)):  # choose two sets of starting positions of the blocks
@@ -79,7 +75,7 @@ class NonogramSolver:
         return intersecting_clauses
 
     @staticmethod
-    def match_row_cells(max_position, length, start, min_position, something, row_blocks, total_length):
+    def __match_row_cells(max_position, length, start, min_position, something, row_blocks, total_length):
         all_cells, unoccupied_positions, empty_cells, single_cells, row_mapping = [], [], [], [], {}
         for i in range(start + 1, start + length + 1):
             cells_in_row = [-i]
@@ -114,7 +110,7 @@ class NonogramSolver:
         return [single_cells, empty_cells, unoccupied_positions, row_mapping]
 
     @staticmethod
-    def match_column_cells(max_position, length, start, min_position, something, total_columns, column_blocks, total_length):
+    def __match_column_cells(max_position, length, start, min_position, something, total_columns, column_blocks, total_length):
         all_cells, unoccupied_positions, empty_cells, single_cells, column_mapping = [], [], [], [], {}
         for i in range(start + 1, start + length + 1):
             column_mapping[((i - 1) % length) * total_columns + (i - 1) // length + 1] = [-(((i - 1) % length) * total_columns + (i - 1) // length + 1)]
@@ -138,16 +134,12 @@ class NonogramSolver:
             all_cells.append(cells_in_column)
         return [single_cells, empty_cells, unoccupied_positions, column_mapping]
 
-    def add_to_solution_clauses(self, cells_info):
-        colored_cells, empty_cells, unoccupied_cells, mapping = cells_info[0], cells_info[1], cells_info[2], cells_info[3]
-        for j in empty_cells:
-            self.solution_clauses.append(j)
-        for j in colored_cells:
-            self.solution_clauses.append(j)
-        for j in unoccupied_cells:
-            self.solution_clauses.append(j)
-        for j in mapping:
-            self.solution_clauses.append(mapping[j])
+    def __add_to_solution_clauses(self, cells_info):
+        colored_cells, empty_cells, unoccupied_cells, mapping = cells_info
+        self.solution_clauses.extend(empty_cells)
+        self.solution_clauses.extend(colored_cells)
+        self.solution_clauses.extend(unoccupied_cells)
+        self.solution_clauses.extend(mapping.values())
 
     def solve(self):
         previous = 0
@@ -162,22 +154,19 @@ class NonogramSolver:
                 for empty in range(i*self.columns+1, (i+1)*self.columns+1):
                     self.solution_clauses.append([-empty])
                 continue
-            all_starts = self.existence(blocks, self.columns, self.rows*self.columns, previous)
+            all_starts = self.__existence(blocks, self.columns, self.rows*self.columns, previous)
             exist, unique_start, max_position, min_num = all_starts[0], all_starts[1], all_starts[2], all_starts[3]
             color = all_starts[4]
-            for j in exist:
-                self.solution_clauses.append(j)
-            for j in unique_start:
-                self.solution_clauses.append(j)
-            for j in self.intersections(exist, blocks, self.columns):
-                self.solution_clauses.append(j)
-            get = self.match_row_cells(max_position, self.columns, i * self.columns, min_num, color, blocks, ma)
-            self.add_to_solution_clauses(get)
+            self.solution_clauses.extend(exist)
+            self.solution_clauses.extend(unique_start)
+            self.solution_clauses.extend(self.__intersections(exist, blocks, self.columns))
+            get = self.__match_row_cells(max_position, self.columns, i * self.columns, min_num, color, blocks, ma)
+            self.__add_to_solution_clauses(get)
             previous += len(blocks)
         previous = 0
         for column in range(self.columns):
             blocks = self.all_columns[column]
-            got = self.existence(blocks, self.rows, self.rows*self.columns, previous)
+            got = self.__existence(blocks, self.rows, self.rows*self.columns, previous)
             if column == 0:
                 if max_position % self.columns == 0:
                     mm = max_position
@@ -210,14 +199,11 @@ class NonogramSolver:
             for i in color:
                 colll.append(i+att)
             color = colll.copy()
-            for j in solution_1:
-                self.solution_clauses.append(j)
-            for j in solution_2:
-                self.solution_clauses.append(j)
-            for j in self.intersections(solution_1, blocks, self.rows):
-                self.solution_clauses.append(j)
-            get = self.match_column_cells(max_position, self.rows, column * self.rows, min_num, color, self.columns, blocks, mm)
-            self.add_to_solution_clauses(get)
+            self.solution_clauses.extend(solution_1)
+            self.solution_clauses.extend(solution_2)
+            self.solution_clauses.extend(self.__intersections(solution_1, blocks, self.rows))
+            get = self.__match_column_cells(max_position, self.rows, column * self.rows, min_num, color, self.columns, blocks, mm)
+            self.__add_to_solution_clauses(get)
             previous += len(blocks)
         self.solved_status = pycosat.solve(self.solution_clauses)
 
