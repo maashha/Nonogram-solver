@@ -6,8 +6,7 @@ import os
 import time
 from matplotlib.patches import Rectangle
 from matplotlib import pyplot as plt
-from subprocess import run
-from subprocess import TimeoutExpired
+
 
 
 def compute_blocks(line_len: int, blocks: Tuple):
@@ -310,12 +309,11 @@ def draw(columns, rows, solved):
 
 def efficiency_enumerative(test):
     global partial_solution
-    times = []
     solution_list: List[Type[np.ndarray]] = []
     placements: Dict[str, Dict[int, List[Type[np.ndarray]]]] = {}
     start_time = time.time()
-    ro = load_from_file('tests/test'+str(test)+'.txt')[0]
-    co = load_from_file('tests/test'+str(test)+'.txt')[1]
+    ro = load_from_file('tests/'+test+'.txt')[0]
+    co = load_from_file('tests/'+test+'.txt')[1]
     row_args = []
     col_args = []
     for i in ro:

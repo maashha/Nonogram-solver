@@ -3,6 +3,8 @@ from random import sample
 from typing import List, Tuple, Dict
 import os
 import time
+from matplotlib.patches import Rectangle
+from matplotlib import pyplot as plt
 
 solution_list: List[List[int]] = []
 
@@ -108,20 +110,30 @@ def load_from_file(file_name):
                     all_columns.append(list(map(int, line.split())))
     return [all_rows, all_columns]
 
-def efficiency_naive():
-    times = []
-    tests = [70419, 70402, 70399, 70472, 70449, 70446, 70474, 70470, 70468, 70442, 70281, 70260, 70289, 70070, 69690]
-    for test in tests:
-        start_time = time.time()
-        ro = load_from_file('tests/test'+str(test)+'.txt')[0]
-        co = load_from_file('tests/test'+str(test)+'.txt')[1]
-        row_args = []
-        col_args = []
-        for i in ro:
-            row_args.append(tuple(i))
-        for i in co:
-            col_args.append(tuple(i))
-        extend(row_args, col_args, [])
-        end_time = time.time()
-        times.append(end_time-start_time)
-    return times
+def draw(columns, rows, solved):
+    fig, ax = plt.subplots()
+    ax.plot()
+    for i in range(rows*columns):
+        if i % columns == (columns-1):
+            if solved[i] == 1:
+                ax.add_patch(Rectangle((i % columns, rows-i//columns), 1, 1))
+        else:
+            if solved[i] == 1:
+                ax.add_patch(Rectangle((i % columns, rows-i//columns), 1, 1))
+    plt.show()
+
+def efficiency_naive(test):
+    start_time = time.time()
+    ro = load_from_file('tests/'+test+'.txt')[0]
+    co = load_from_file('tests/'+test+'.txt')[1]
+    row_args = []
+    col_args = []
+    for i in ro:
+        row_args.append(tuple(i))
+    for i in co:
+        col_args.append(tuple(i))
+    solved = extend(row_args, col_args, [])
+    print(solved)
+    draw(len(row_args), len(col_args), solved)
+    end_time = time.time()
+    return end_time-start_time
