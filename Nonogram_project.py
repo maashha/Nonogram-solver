@@ -75,13 +75,13 @@ class NonogramSolver:
         return intersecting_clauses
 
     @staticmethod
-    def __match_row_cells(max_position, length, start, min_position, something, row_blocks, total_length):
+    def __match_row_cells(max_position, length, start, min_position, occupied_positions_rows, row_blocks, total_length):
         all_cells, unoccupied_positions, empty_cells, single_cells, row_mapping = [], [], [], [], {}
         for i in range(start + 1, start + length + 1):
             cells_in_row = [-i]
             if i % length != 0:
                 for j in range(min_position + i % length - 1, max_position + 1, length):
-                    if j not in unoccupied_positions and j not in something:
+                    if j not in unoccupied_positions and j not in occupied_positions_rows:
                         unoccupied_positions.append([-j])
                     else:
                         cells_in_row.append(j)
@@ -94,7 +94,7 @@ class NonogramSolver:
                         empty_cells.append([i, -j])
             else:
                 for j in range(min_position + length - 1, max_position + 1, length):
-                    if j not in unoccupied_positions and j not in something:
+                    if j not in unoccupied_positions and j not in occupied_positions_rows:
                         unoccupied_positions.append([-j])
                     else:
                         cells_in_row.append(j)
@@ -110,7 +110,7 @@ class NonogramSolver:
         return [single_cells, empty_cells, unoccupied_positions, row_mapping]
 
     @staticmethod
-    def __match_column_cells(max_position, length, start, min_position, something, total_columns, column_blocks, total_length):
+    def __match_column_cells(max_position, length, start, min_position, occupied_positions_columns, total_columns, column_blocks, total_length):
         all_cells, unoccupied_positions, empty_cells, single_cells, column_mapping = [], [], [], [], {}
         for i in range(start + 1, start + length + 1):
             column_mapping[((i - 1) % length) * total_columns + (i - 1) // length + 1] = [-(((i - 1) % length) * total_columns + (i - 1) // length + 1)]
@@ -123,7 +123,7 @@ class NonogramSolver:
                 boundary = -1
                 remainder = length
             for j in range(min_position + remainder - 1, max_position + 1, length):
-                if j not in unoccupied_positions and j not in something:
+                if j not in unoccupied_positions and j not in occupied_positions_columns:
                     unoccupied_positions.append([-j])
                 else:
                     cells_in_column.append(j)
@@ -142,69 +142,69 @@ class NonogramSolver:
         self.solution_clauses.extend(mapping.values())
 
     def solve(self):
-        previous = 0
+        previous_start_row = 0
         max_position = self.rows*self.columns
         for i in range(self.rows):
             blocks = self.row_blocks[i]  # all filled in cells in the ith row
             if max_position % self.columns == 0:
-                ma = max_position
+                max_row_position = max_position
             else:
-                ma = max_position + (self.columns-max_position % self.columns)
+                max_row_position = max_position + (self.columns-max_position % self.columns)
             if blocks == [0]:  # case of the empty row
                 for empty in range(i*self.columns+1, (i+1)*self.columns+1):
                     self.solution_clauses.append([-empty])
                 continue
-            all_starts = self.__existence(blocks, self.columns, self.rows*self.columns, previous)
+            all_starts = self.__existence(blocks, self.columns, self.rows*self.columns, previous_start_row)
             exist, unique_start, max_position, min_num = all_starts[0], all_starts[1], all_starts[2], all_starts[3]
             color = all_starts[4]
             self.solution_clauses.extend(exist)
             self.solution_clauses.extend(unique_start)
             self.solution_clauses.extend(self.__intersections(exist, blocks, self.columns))
-            get = self.__match_row_cells(max_position, self.columns, i * self.columns, min_num, color, blocks, ma)
-            self.__add_to_solution_clauses(get)
-            previous += len(blocks)
-        previous = 0
+            row_cells_info = self.__match_row_cells(max_position, self.columns, i * self.columns, min_num, color, blocks, max_row_position)
+            self.__add_to_solution_clauses(row_cells_info)
+            previous_start_row += len(blocks)
+        previous_start_column = 0
         for column in range(self.columns):
             blocks = self.all_columns[column]
-            got = self.__existence(blocks, self.rows, self.rows*self.columns, previous)
+            got_info = self.__existence(blocks, self.rows, self.rows*self.columns, previous_start_column)
             if column == 0:
                 if max_position % self.columns == 0:
-                    mm = max_position
+                    max_column_position = max_position
                 else:
-                    mm = max_position + (self.columns-max_position % self.columns)
-                att = mm-self.columns*self.rows
-            if (max_position-att) % self.rows == 0:
-                mm = max_position
+                    max_column_position = max_position + (self.columns-max_position % self.columns)
+                row_column_difference = max_column_position-self.columns*self.rows
+            if (max_position-row_column_difference) % self.rows == 0:
+                max_column_position = max_position
             else:
-                mm = max_position + (self.rows-(max_position-att) % self.rows)
+                max_column_position = max_position + (self.rows-(max_position-row_column_difference) % self.rows)
             if blocks == [0]:
                 for h in range(column*self.rows+1, column*self.rows+self.rows+1):
                     self.solution_clauses.append([-(((h-1) % self.rows)*self.columns+(h-1)//self.rows+1)])
                 continue
             sol_1, sol_2 = [], []
-            solution_1, solution_2 = got[0], got[1]
+            solution_1, solution_2 = got_info[0], got_info[1]
             for i in solution_1:
                 solution_1_1 = []
                 for j in i:
-                    solution_1_1.append(j+att)
+                    solution_1_1.append(j+row_column_difference)
                 sol_1.append(solution_1_1)
             for i in solution_2:
                 solution_2_1 = []
                 for j in i:
-                    solution_2_1.append(-(j*(-1)+att))
+                    solution_2_1.append(-(j*(-1)+row_column_difference))
                 sol_2.append(solution_2_1)
             solution_1, solution_2 = sol_1.copy(), sol_2.copy()
-            max_position, min_num, color = got[2]+att, got[3]+att, got[4]
-            colll = []
+            max_position, min_num, color = got_info[2]+row_column_difference, got_info[3]+row_column_difference, got_info[4]
+            adjusted_color_indices = []
             for i in color:
-                colll.append(i+att)
-            color = colll.copy()
+                adjusted_color_indices.append(i+row_column_difference)
+            color = adjusted_color_indices.copy()
             self.solution_clauses.extend(solution_1)
             self.solution_clauses.extend(solution_2)
             self.solution_clauses.extend(self.__intersections(solution_1, blocks, self.rows))
-            get = self.__match_column_cells(max_position, self.rows, column * self.rows, min_num, color, self.columns, blocks, mm)
-            self.__add_to_solution_clauses(get)
-            previous += len(blocks)
+            row_cells_info = self.__match_column_cells(max_position, self.rows, column * self.rows, min_num, color, self.columns, blocks, max_column_position)
+            self.__add_to_solution_clauses(row_cells_info)
+            previous_start_column += len(blocks)
         self.solved_status = pycosat.solve(self.solution_clauses)
 
     def draw(self):
