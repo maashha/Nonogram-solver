@@ -1,8 +1,8 @@
-import pycosat
 import os
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
-
+from pysat.solvers import Minisat22
+import itertools
 
 class NonogramSolver:
     def __init__(self):
@@ -11,12 +11,12 @@ class NonogramSolver:
         self.row_blocks = []
         self.column_blocks = []
         self.solved_status = []
-        self.solution_clauses = []
+        self.solver = Minisat22()
 
     def load_from_file(self, file_name):
         line_number = 0
         self.rows, self.columns = 0, 0
-        self.row_blocks, self.all_columns = [], []  # the array of all blocks of filled cells in ROWS/COLUMNS
+        self.row_blocks, self.column_blocks = [], []  # the array of all blocks of filled cells in ROWS/COLUMNS
         if os.path.isfile(file_name):
             with open(file_name, "r") as file:
                 for line in file:
@@ -27,7 +27,7 @@ class NonogramSolver:
                     elif line_number <= 1 + self.rows:
                         self.row_blocks.append(list(map(int, line.split())))
                     else:
-                        self.all_columns.append(list(map(int, line.split())))
+                        self.column_blocks.append(list(map(int, line.split())))
 
     @staticmethod
     def __existence(block_sizes, length, sizes, number):
@@ -61,17 +61,17 @@ class NonogramSolver:
     @staticmethod
     def __intersections(position_sets, block_lengths, amount):
         intersecting_clauses = []
-        for section_1 in range(len(position_sets)):
-            for section_2 in range(section_1 + 1, len(position_sets)):  # choose two sets of starting positions of the blocks
-                for first_position in range(len(position_sets[section_1])):
-                    # add elements of the first array in pairs with elements of the second, excluding their intersection
-                    for second_position in range(len(position_sets[section_2])):
-                        if abs((position_sets[section_1][first_position]) - (position_sets[section_2][second_position])) % amount < sum(
-                                block_lengths[section_1:section_2]) + (section_2 - section_1) and abs(
-                            (position_sets[section_1][first_position]) - (position_sets[section_2][second_position])) >= amount:
-                            intersecting_clauses.append([-(position_sets[section_1][first_position]), -(position_sets[section_2][second_position])])
-                            if first_position >= 3:
-                                intersecting_clauses.append([-(position_sets[section_1][first_position]), -(position_sets[section_2][first_position - 3])])
+        sections_set = itertools.combinations(range(len(position_sets)), 2)
+        for section in sections_set:
+            for first_position in range(len(position_sets[section[0]])):
+                # add elements of the first array in pairs with elements of the second, excluding their intersection
+                for second_position in range(len(position_sets[section[1]])):
+                    if abs((position_sets[section[0]][first_position]) - (position_sets[section[1]][second_position])) % amount < sum(
+                            block_lengths[section[0]:section[1]]) + (section[1] - section[0]) and abs(
+                        (position_sets[section[0]][first_position]) - (position_sets[section[1]][second_position])) >= amount:
+                        intersecting_clauses.append([-(position_sets[section[0]][first_position]), -(position_sets[section[1]][second_position])])
+                        if first_position >= 3:
+                            intersecting_clauses.append([-(position_sets[section[0]][first_position]), -(position_sets[section[1]][first_position - 3])])
         return intersecting_clauses
 
     @staticmethod
@@ -87,7 +87,7 @@ class NonogramSolver:
                         cells_in_row.append(j)
                         for n in range(i, i + row_blocks[(j - total_length) // length]):
                             single_cells.append([-j, n])
-                            if n in row_mapping.keys():
+                            if n in row_mapping:
                                 row_mapping[n].append(j)
                             else:
                                 row_mapping[n] = [-n, j]
@@ -100,7 +100,7 @@ class NonogramSolver:
                         cells_in_row.append(j)
                         for n in range(i, i + row_blocks[(j - total_length) // length - 1]):
                             single_cells.append([-j, n])
-                            if n in row_mapping.keys():
+                            if n in row_mapping:
                                 row_mapping[n].append(j)
                             else:
                                 row_mapping[n] = [-n, j]
@@ -116,12 +116,7 @@ class NonogramSolver:
             column_mapping[((i - 1) % length) * total_columns + (i - 1) // length + 1] = [-(((i - 1) % length) * total_columns + (i - 1) // length + 1)]
         for i in range(start + 1, start + length + 1):
             cells_in_column = [-(((i - 1) % length) * total_columns + (i - 1) // length + 1)]
-            if i % length != 0:
-                boundary = 0
-                remainder = i % length
-            else:
-                boundary = -1
-                remainder = length
+            boundary, remainder = (0, i % length) if i % length != 0 else (-1, length)
             for j in range(min_position + remainder - 1, max_position + 1, length):
                 if j not in unoccupied_positions and j not in occupied_positions_columns:
                     unoccupied_positions.append([-j])
@@ -136,10 +131,14 @@ class NonogramSolver:
 
     def __add_to_solution_clauses(self, cells_info):
         colored_cells, empty_cells, unoccupied_cells, mapping = cells_info
-        self.solution_clauses.extend(empty_cells)
-        self.solution_clauses.extend(colored_cells)
-        self.solution_clauses.extend(unoccupied_cells)
-        self.solution_clauses.extend(mapping.values())
+        for clause in empty_cells:
+            self.solver.add_clause(clause)
+        for clause in colored_cells:
+            self.solver.add_clause(clause)
+        for clause in unoccupied_cells:
+            self.solver.add_clause(clause)
+        for clause in mapping.values():
+            self.solver.add_clause(clause)
 
     def solve(self):
         previous_start_row = 0
@@ -152,20 +151,23 @@ class NonogramSolver:
                 max_row_position = max_position + (self.columns-max_position % self.columns)
             if blocks == [0]:  # case of the empty row
                 for empty in range(i*self.columns+1, (i+1)*self.columns+1):
-                    self.solution_clauses.append([-empty])
+                    self.solver.add_clause([-empty])
                 continue
             all_starts = self.__existence(blocks, self.columns, self.rows*self.columns, previous_start_row)
             exist, unique_start, max_position, min_num = all_starts[0], all_starts[1], all_starts[2], all_starts[3]
             color = all_starts[4]
-            self.solution_clauses.extend(exist)
-            self.solution_clauses.extend(unique_start)
-            self.solution_clauses.extend(self.__intersections(exist, blocks, self.columns))
+            for clause in exist:
+                self.solver.add_clause(clause)
+            for clause in unique_start:
+                self.solver.add_clause(clause)
+            for clause in self.__intersections(exist, blocks, self.columns):
+                self.solver.add_clause(clause)
             row_cells_info = self.__match_row_cells(max_position, self.columns, i * self.columns, min_num, color, blocks, max_row_position)
             self.__add_to_solution_clauses(row_cells_info)
             previous_start_row += len(blocks)
         previous_start_column = 0
         for column in range(self.columns):
-            blocks = self.all_columns[column]
+            blocks = self.column_blocks[column]
             got_info = self.__existence(blocks, self.rows, self.rows*self.columns, previous_start_column)
             if column == 0:
                 if max_position % self.columns == 0:
@@ -179,7 +181,7 @@ class NonogramSolver:
                 max_column_position = max_position + (self.rows-(max_position-row_column_difference) % self.rows)
             if blocks == [0]:
                 for h in range(column*self.rows+1, column*self.rows+self.rows+1):
-                    self.solution_clauses.append([-(((h-1) % self.rows)*self.columns+(h-1)//self.rows+1)])
+                    self.solver.add_clause([-(((h-1) % self.rows)*self.columns+(h-1)//self.rows+1)])
                 continue
             sol_1, sol_2 = [], []
             solution_1, solution_2 = got_info[0], got_info[1]
@@ -199,13 +201,14 @@ class NonogramSolver:
             for i in color:
                 adjusted_color_indices.append(i+row_column_difference)
             color = adjusted_color_indices.copy()
-            self.solution_clauses.extend(solution_1)
-            self.solution_clauses.extend(solution_2)
-            self.solution_clauses.extend(self.__intersections(solution_1, blocks, self.rows))
+            self.solver.append_formula(solution_1)
+            self.solver.append_formula(solution_2)
+            self.solver.append_formula(self.__intersections(solution_1, blocks, self.rows))
             row_cells_info = self.__match_column_cells(max_position, self.rows, column * self.rows, min_num, color, self.columns, blocks, max_column_position)
             self.__add_to_solution_clauses(row_cells_info)
             previous_start_column += len(blocks)
-        self.solved_status = pycosat.solve(self.solution_clauses)
+        self.solver.solve()
+        self.solved_status = self.solver.get_model()
 
     def draw(self):
         fig, ax = plt.subplots()
