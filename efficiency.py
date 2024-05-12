@@ -1,7 +1,7 @@
 from Nonogram_solver import efficiency_counter
-from enumerative_backtracking_solver import efficiency_enumerative
-from backtracking_naive import efficiency_naive
-from New_solver import efficiency_nonogram
+from programs_to_compare.enumerative_backtracking_solver import efficiency_enumerative
+from programs_to_compare.backtracking_naive import efficiency_naive
+from programs_to_compare.New_solver import efficiency_nonogram
 import pandas as pd
 
 
