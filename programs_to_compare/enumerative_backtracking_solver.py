@@ -8,7 +8,6 @@ from matplotlib.patches import Rectangle
 from matplotlib import pyplot as plt
 
 
-
 def compute_blocks(line_len: int, blocks: Tuple):
     """
     Given line and a tuple of blocks, generate valid start and stop positions for each block
@@ -81,64 +80,67 @@ def valid_groups(arg: Tuple, line: AnyStr):
 def valid(row_args: List[Tuple], col_args: List[Tuple], partial_solution: Type[np.ndarray],
           completed_rows: Set[int], completed_cols: Set[int]):
     global placements
-    # Check row and column constraints - sum and grouping
-    for r, row_constraints in enumerate(row_args):
-        if r in completed_rows:
-            # Strict check - sum and grouping
-            if sum(row_constraints) != np.sum(partial_solution[r, :]):
-                return False
-            str_ = ''.join(partial_solution[r, :].astype('int').astype('str'))
-            if not valid_groups(row_constraints, str_):
-                return False
-        elif np.all(partial_solution[r, :] == -1):
-            # Row hasn't been touched yet
-            continue
-        else:
-            # Partially solved row. Check that sum isn't exceeded and that 1's are consistent with row's placements
-            if sum(row_constraints) < np.sum(partial_solution[r, :] == 1):
-                return False
-            consistent_ones = False
-            for placement in placements['row'][r]:
-                if np.all(
-                        np.bitwise_and(
-                            np.select([partial_solution[r, :] == -1], [0], default=partial_solution[r, :]),
-                            placement
-                        ) == np.select([partial_solution[r, :] == -1], [0], default=partial_solution[r, :])
-                ):
-                    consistent_ones = True
-                    break
-            if not consistent_ones:
-                return False
-    
-    for c, col_constraints in enumerate(col_args):
-        if c in completed_cols:
-            # Strict check - sum and grouping
-            if sum(col_constraints) != np.sum(partial_solution[:, c]):
-                return False
-            str_ = ''.join(partial_solution[:, c].astype('int').astype('str'))
-            if not valid_groups(col_constraints, str_):
-                return False
-        elif np.all(partial_solution[:, c] == -1):
-            # Column hasn't been touched yet
-            continue
-        else:
-            # Partially solved column. Check that sum isn't exceeded and 1's are consistent with column's placements
-            if sum(col_constraints) < np.sum(partial_solution[:, c] == 1):
-                return False
-            consistent_ones = False
-            for placement in placements['column'][c]:
-                if np.all(
-                        np.bitwise_and(
-                            np.select([partial_solution[:, c] == -1], [0], default=partial_solution[:, c]),
-                            placement
-                        ) == np.select([partial_solution[:, c] == -1], [0], default=partial_solution[:, c])
-                ):
-                    consistent_ones = True
-                    break
-            if not consistent_ones:
-                return False
-    
-    return True
+    try:
+        # Check row and column constraints - sum and grouping
+        for r, row_constraints in enumerate(row_args):
+            if r in completed_rows:
+                # Strict check - sum and grouping
+                if sum(row_constraints) != np.sum(partial_solution[r, :]):
+                    return False
+                str_ = ''.join(partial_solution[r, :].astype('int').astype('str'))
+                if not valid_groups(row_constraints, str_):
+                    return False
+            elif np.all(partial_solution[r, :] == -1):
+                # Row hasn't been touched yet
+                continue
+            else:
+                # Partially solved row. Check that sum isn't exceeded and that 1's are consistent with row's placements
+                if sum(row_constraints) < np.sum(partial_solution[r, :] == 1):
+                    return False
+                consistent_ones = False
+                for placement in placements['row'][r]:
+                    if np.all(
+                            np.bitwise_and(
+                                np.select([partial_solution[r, :] == -1], [0], default=partial_solution[r, :]),
+                                placement
+                            ) == np.select([partial_solution[r, :] == -1], [0], default=partial_solution[r, :])
+                    ):
+                        consistent_ones = True
+                        break
+                if not consistent_ones:
+                    return False
+
+        for c, col_constraints in enumerate(col_args):
+            if c in completed_cols:
+                # Strict check - sum and grouping
+                if sum(col_constraints) != np.sum(partial_solution[:, c]):
+                    return False
+                str_ = ''.join(partial_solution[:, c].astype('int').astype('str'))
+                if not valid_groups(col_constraints, str_):
+                    return False
+            elif np.all(partial_solution[:, c] == -1):
+                # Column hasn't been touched yet
+                continue
+            else:
+                # Partially solved column. Check that sum isn't exceeded and 1's are consistent with column's placements
+                if sum(col_constraints) < np.sum(partial_solution[:, c] == 1):
+                    return False
+                consistent_ones = False
+                for placement in placements['column'][c]:
+                    if np.all(
+                            np.bitwise_and(
+                                np.select([partial_solution[:, c] == -1], [0], default=partial_solution[:, c]),
+                                placement
+                            ) == np.select([partial_solution[:, c] == -1], [0], default=partial_solution[:, c])
+                    ):
+                        consistent_ones = True
+                        break
+                if not consistent_ones:
+                    return False
+
+        return True
+    except:
+        return 0
 
 
 def infer_values(solution_array: Type[np.ndarray],
@@ -220,7 +222,7 @@ def update_placements(solution_array: Type[np.ndarray],
                 placements_dict['row'][r] = valid_placements.copy()
     for idx in indexes_for_deletion:
         del placements_dict['row'][idx]
-    
+
     indexes_for_deletion = []
     for c in placements_dict['column']:
         if c in completed_columns:
@@ -243,7 +245,7 @@ def update_placements(solution_array: Type[np.ndarray],
                 placements_dict['column'][c] = valid_placements.copy()
     for idx in indexes_for_deletion:
         del placements_dict['column'][idx]
-    
+
     return updated, placements_dict
 
 
@@ -251,7 +253,7 @@ def backtrack(solution_array: Type[np.ndarray], row_placements: Dict[int, List[T
               row_args: List[Tuple], col_args: List[Tuple], completed_rows: Set[int], completed_cols: Set[int]):
     assert (len(completed_rows) == len(row_args) and len(completed_cols) == len(col_args)) or \
            (len(completed_rows) != len(row_args) and len(completed_cols) != len(col_args))
-    
+
     if len(completed_rows) == len(row_args):
         solution_already_found = False
         for solution in solution_list:
@@ -261,7 +263,7 @@ def backtrack(solution_array: Type[np.ndarray], row_placements: Dict[int, List[T
         if not solution_already_found:
             solution_list.append(partial_solution.copy())
         return
-    
+
     for row in row_placements:
         line = solution_array[row, :]
         line_copy = line.copy()
@@ -275,6 +277,7 @@ def backtrack(solution_array: Type[np.ndarray], row_placements: Dict[int, List[T
                 continue
             backtrack(solution_array, row_placements_next, row_args, col_args, completed_rows_next, completed_cols_next)
             line[:] = line_copy.copy()
+
 
 def load_from_file(file_name):
     line_number = 0
@@ -295,25 +298,27 @@ def load_from_file(file_name):
                     all_columns.append(list(map(int, line.split())))
     return [all_rows, all_columns]
 
+
 def draw(columns, rows, solved):
     fig, ax = plt.subplots()
     ax.plot()
-    for i in range(rows*columns):
-        if i % columns == (columns-1):
+    for i in range(rows * columns):
+        if i % columns == (columns - 1):
             if solved[i] == 1:
-                ax.add_patch(Rectangle((i % columns, rows-i//columns), 1, 1))
+                ax.add_patch(Rectangle((i % columns, rows - i // columns), 1, 1))
         else:
             if solved[i] == 1:
-                ax.add_patch(Rectangle((i % columns, rows-i//columns), 1, 1))
+                ax.add_patch(Rectangle((i % columns, rows - i // columns), 1, 1))
     plt.show()
+
 
 def efficiency_enumerative(test):
     global partial_solution
     solution_list: List[Type[np.ndarray]] = []
     placements: Dict[str, Dict[int, List[Type[np.ndarray]]]] = {}
     start_time = time.time()
-    ro = load_from_file('tests/'+test+'.txt')[0]
-    co = load_from_file('tests/'+test+'.txt')[1]
+    ro = load_from_file('tests/' + test + '.txt')[0]
+    co = load_from_file('tests/' + test + '.txt')[1]
     row_args = []
     col_args = []
     for i in ro:
@@ -351,10 +356,10 @@ def efficiency_enumerative(test):
         print('Solving via backtracking')
         backtrack(partial_solution, placements['row'], row_args, col_args, completed_rows, completed_columns)
     solved = []
-    for i in solution_list[0]:
-        for j in list(i):
-            solved.append(j)
-    draw(row_vector_len, col_vector_len, solved)
+    if len(solution_list)>0:
+        for i in solution_list[0]:
+            for j in list(i):
+                solved.append(j)
+        draw(row_vector_len, col_vector_len, solved)
     end_time = time.time()
-    return end_time-start_time
-
+    return end_time - start_time

@@ -1,6 +1,5 @@
 from Nonogram_solver import efficiency_counter
 from programs_to_compare.enumerative_backtracking_solver import efficiency_enumerative
-from programs_to_compare.backtracking_naive import efficiency_naive
 from programs_to_compare.New_solver import efficiency_nonogram
 import pandas as pd
 
@@ -13,7 +12,7 @@ tests = ['small_tests/small_test_1', 'small_tests/small_test_2', 'small_tests/sm
          'xx-large_tests/xx-large_test_1', 'xx-large_tests/xx-large_test_2', 'xx-large_tests/xx-large_test_3',
          'unsat_tests/unsat_test_1', 'unsat_tests/unsat_test_2', 'unsat_tests/unsat_test_3']
 final_tests = []
-times_1, sizes_1, times_2, times_3, times_4 = [], [], [], [], []
+times_1, sizes_1, times_2, times_3 = [], [], [], []
 for test in tests:
     final_tests.append(test.split('/')[1]+'.txt')
     efficiency_1 = efficiency_counter(test)
@@ -23,14 +22,11 @@ for test in tests:
     times_2.append(efficiency_2)
     efficiency_3 = efficiency_nonogram(test)
     times_3.append(efficiency_3)
-    efficiency_4 = efficiency_naive(test)
-    times_4.append(efficiency_4)
 new_data = {'Test': final_tests,
             'Size': sizes_1,
             'My project': times_1,
             'enumerative_backtracking_solver.py': times_2,
-            'New_solver.py': times_3,
-            'backtracking_naive.py': times_4}
+            'New_solver.py': times_3}
 df_new = pd.DataFrame(new_data)
 df_existing = pd.read_excel(existing_file)
 df_combined = pd.concat([df_new], ignore_index=True)

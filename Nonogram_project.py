@@ -213,7 +213,7 @@ class NonogramSolver:
     def draw(self):
         fig, ax = plt.subplots()
         ax.plot()
-        if self.solved_status != 'UNSAT':
+        if self.solved_status != None:
             for i in range(self.rows*self.columns):
                 if i % self.columns == (self.columns-1):
                     if self.solved_status[i] >= 0:
@@ -221,4 +221,6 @@ class NonogramSolver:
                 else:
                     if self.solved_status[i] >= 0:
                         ax.add_patch(Rectangle((i % self.columns, self.rows-i//self.columns), 1, 1))
-        plt.show()
+            plt.show()
+        else:
+            return 'No solution'
