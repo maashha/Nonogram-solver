@@ -131,13 +131,7 @@ class NonogramSolver:
 
     def __add_to_solution_clauses(self, cells_info):
         colored_cells, empty_cells, unoccupied_cells, mapping = cells_info
-        for clause in empty_cells:
-            self.solver.add_clause(clause)
-        for clause in colored_cells:
-            self.solver.add_clause(clause)
-        for clause in unoccupied_cells:
-            self.solver.add_clause(clause)
-        for clause in mapping.values():
+        for clause in itertools.chain(empty_cells, colored_cells, unoccupied_cells, mapping.values()) :
             self.solver.add_clause(clause)
 
     def solve(self):
