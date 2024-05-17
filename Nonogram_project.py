@@ -1,7 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
-from pysat.solvers import Minisat22
+from pysat.solvers import Solver
 import itertools
 
 class NonogramSolver:
@@ -11,12 +11,12 @@ class NonogramSolver:
         self.row_blocks = []
         self.column_blocks = []
         self.solved_status = []
-        self.solver = Minisat22()
+        self.solver = Solver()
 
     def load_from_file(self, file_name):
         line_number = 0
         self.rows, self.columns = 0, 0
-        self.row_blocks, self.column_blocks = [], []  # the array of all blocks of filled cells in ROWS/COLUMNS
+        self.row_blocks, self.column_blocks = [], []  # an array of all blocks of filled cells in ROWS/COLUMNS
         if os.path.isfile(file_name):
             with open(file_name, "r") as file:
                 for line in file:
@@ -165,6 +165,7 @@ class NonogramSolver:
             row_cells_info = self.__match_row_cells(max_position, self.columns, i * self.columns, min_num, color, blocks, max_row_position)
             self.__add_to_solution_clauses(row_cells_info)
             previous_start_row += len(blocks)
+
         previous_start_column = 0
         for column in range(self.columns):
             blocks = self.column_blocks[column]
@@ -207,6 +208,7 @@ class NonogramSolver:
             row_cells_info = self.__match_column_cells(max_position, self.rows, column * self.rows, min_num, color, self.columns, blocks, max_column_position)
             self.__add_to_solution_clauses(row_cells_info)
             previous_start_column += len(blocks)
+
         self.solver.solve()
         self.solved_status = self.solver.get_model()
 

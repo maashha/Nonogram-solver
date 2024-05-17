@@ -24,7 +24,7 @@ for test in tests:
     times_3.append(efficiency_3)
 new_data = {'Test': final_tests,
             'Size': sizes_1,
-            'My project': times_1,
+            'My program': times_1,
             'enumerative_backtracking_solver.py': times_2,
             'New_solver.py': times_3}
 df_new = pd.DataFrame(new_data)

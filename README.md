@@ -17,13 +17,13 @@
     
 ### Running the Program
 
-To run the program with one of the provided test cases, run the notebook with the path to the test file in the following way:
+To run the program with one of the provided test cases, run the notebook with the path to the test file in the Nonogram_solver.ipynb:
 
 ```python
-solver.load_from_file('tests/large_tests/large_test_1.txt')
+solver.load_from_file('tests/large_tests/large_test_3.txt')
 ```
 
-To solve your own nonogram, you'll need to load a file containing lists of filled cells in rows and columns into the 'tests' directory. Afterward, follow the same steps outlined in the previous section.
+Or you can upload and solve your own nonogram.
 
 ## Additional Resources
 
